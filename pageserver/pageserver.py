@@ -15,10 +15,11 @@
 
 import config    # Configure from .ini files and command line
 import logging   # Better than print statements
+import os
 logging.basicConfig(format='%(levelname)s:%(message)s',
                     level=logging.INFO)
 log = logging.getLogger(__name__)
-# Logging level may be overridden by configuration 
+# Logging level may be overridden by configuration
 
 import socket    # Basic TCP/IP communication on the internet
 import _thread   # Response computation runs concurrently with main program
@@ -77,6 +78,28 @@ STATUS_FORBIDDEN = "HTTP/1.0 403 Forbidden\n\n"
 STATUS_NOT_FOUND = "HTTP/1.0 404 Not Found\n\n"
 STATUS_NOT_IMPLEMENTED = "HTTP/1.0 401 Not Implemented\n\n"
 
+def read_file(file_name, sock):
+    options = vars(get_options())
+    DOCROOT = options["DOCROOT"]
+    PORT = options["PORT"]
+    source_path = "{}{}".format(DOCROOT, file_name)
+    print(source_path)
+    print(os.listdir("../pages"))
+    print(file_name)
+    print("^^^^^^^^^^^^^^^^^^^^^^^^^")
+    if "//" in file_name or "~" in file_name or ".." in file_name:
+        transmit(STATUS_FORBIDDEN, sock)
+    elif file_name[1:] not in os.listdir("../pages"):
+        transmit(STATUS_NOT_FOUND, sock)
+    elif '.html' in file_name or '.css' in file_name:
+        try:
+            print("TRYING")
+            with open(source_path, 'r', encoding='utf-8') as source:
+                for line in source:
+                    transmit(line, sock)
+        except Exception as e:
+            print(e)
+
 
 def respond(sock):
     """
@@ -92,7 +115,8 @@ def respond(sock):
     parts = request.split()
     if len(parts) > 1 and parts[0] == "GET":
         transmit(STATUS_OK, sock)
-        transmit(CAT, sock)
+        if "favicon" not in parts[1]:
+            read_file(parts[1], sock)
     else:
         log.info("Unhandled request: {}".format(request))
         transmit(STATUS_NOT_IMPLEMENTED, sock)
@@ -106,6 +130,7 @@ def respond(sock):
 def transmit(msg, sock):
     """It might take several sends to get the whole message out"""
     sent = 0
+    print(msg)
     while sent < len(msg):
         buff = bytes(msg[sent:], encoding="utf-8")
         sent += sock.send(buff)
