@@ -85,7 +85,7 @@ def read_file(file_name, sock):
     source_path = "{}{}".format(DOCROOT, file_name)
     if "//" in file_name or "~" in file_name or ".." in file_name:
         transmit(STATUS_FORBIDDEN, sock)
-    elif file_name[1:] not in os.listdir("../pages"):
+    elif file_name[1:] not in os.listdir(DOCROOT):
         transmit(STATUS_NOT_FOUND, sock)
     elif '.html' in file_name or '.css' in file_name:
         try:
@@ -125,6 +125,7 @@ def respond(sock):
 def transmit(msg, sock):
     """It might take several sends to get the whole message out"""
     sent = 0
+    print(msg)
     while sent < len(msg):
         buff = bytes(msg[sent:], encoding="utf-8")
         sent += sock.send(buff)
